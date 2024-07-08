@@ -21,5 +21,4 @@ A Wallhack script made with UEFN scripting language VERSE. Use for Creative 2.0!
 6. **Remote Activation:**
    - When a player presses the designated remote, the VFX will be enabled for all players except the one who pressed the button.
   
-# How To Build With VERSE File
-[Check this out](https://dev.epicgames.com/documentation/en-us/uefn/create-your-own-device-in-verse#:~:text=Open%20your%20project%20in%20UEFN,the%20Create%20Verse%20Script%20window.)
+# [How To Build A Verse File](https://dev.epicgames.com/documentation/en-us/uefn/create-your-own-device-in-verse#:~:text=Open%20your%20project%20in%20UEFN,the%20Create%20Verse%20Script%20window.)
