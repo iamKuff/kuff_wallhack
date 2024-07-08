@@ -1,0 +1,130 @@
+using { /Fortnite.com/Devices }
+using { /Verse.org/Simulation }
+using { /UnrealEngine.com/Temporary/Diagnostics }
+using { /Fortnite.com/Characters }
+using { /UnrealEngine.com/Temporary/SpatialMath }
+using { /Fortnite.com/Game }
+
+@editable SpawnPads : []player_spawner_device = array{}
+    @editable VFXRemoteSignal : signal_remote_manager_device = signal_remote_manager_device{}
+    @editable EnableByTrigger : trigger_device = trigger_device{}
+    @editable EnableByButton : button_device = button_device{}
+    @editable WallHacksVFXs : []vfx_spawner_device = array{} 
+    @editable VFXInfiniteDuration : logic = true   
+    @editable VFXDuration : float = 10.0
+
+stack<public>(t:type) := class:
+    Elements<internal>:[]t = array{}
+
+    Push<public>(NewElement:t):stack(t)=
+        stack(t){Elements := Elements + array{NewElement}}
+
+    Pop<public>()<decides><transacts>:tuple(stack(t),t)=
+        FirstElement := Peek[]
+        (stack(t){Elements := Elements.RemoveElement[Elements.Length - 1]}, FirstElement)
+
+    Size<public>()<transacts>:int=
+        Elements.Length
+
+    IsEmpty<public>()<decides><transacts>:void=
+        Size() = 0
+
+    Peek<public>()<decides><transacts>:t=
+        Elements[Elements.Length - 1]                    
+
+CreateStack<public><constructor>(InitialElements:[]t where t:type) := stack(t):
+    Elements := InitialElements
+
+Kuff_wallhack := class(creative_device):
+
+    var VFXStack : stack(vfx_spawner_device) = stack(vfx_spawner_device){}
+    var VFXAgentMap : [agent]vfx_spawner_device = map{}
+
+    OnBegin<override>()<suspends>:void=
+        SpawnPadInit()
+        set VFXStack = CreateStack( WallHacksVFXs )
+        GetPlayspace().PlayerRemovedEvent().Subscribe(OnPlayerRemoved)
+        spawn{ MonitorRemoteSignal() }
+        spawn{ MonitorTrigger() }
+        spawn{MonitorButton() }
+
+    SpawnPadInit():void=
+        for(SpawnPad : SpawnPads):
+            SpawnPad.SpawnedEvent.Subscribe( AgentInit )
+
+    AgentInit(Agent : agent):void=
+        if(Exists := VFXAgentMap[Agent]):
+        else:
+            if(NewTuple := VFXStack.Pop[]):
+                set VFXStack = NewTuple(0)                
+                VFX : vfx_spawner_device = NewTuple(1)
+                if(set VFXAgentMap[Agent] = VFX):
+                spawn{ VFXGlueToPlayer(Agent, VFX) }
+                Print("AgentInit:  there are now {VFXStack.Size()} items in stock.")
+            else:
+
+    OnPlayerRemoved(Agent : agent):void=
+        if(RemovedPlayerVFX : vfx_spawner_device = VFXAgentMap[Agent]):
+            set VFXStack = VFXStack.Push( RemovedPlayerVFX )
+            var NewVFXMap : [agent]vfx_spawner_device = map{}            
+            for(CurrentAgent -> VFX : VFXAgentMap, CurrentAgent <> Agent):
+                set NewVFXMap = ConcatenateMaps(NewVFXMap, map{CurrentAgent => VFX})
+            set VFXAgentMap = NewVFXMap
+            RemovedPlayerVFX.Disable()
+            Print("OnPlayerRemoved:  there are now {VFXStack.Size()} items in stock.")
+
+    MonitorRemoteSignal()<suspends>:void=
+        loop:
+            ButtonPresser := VFXRemoteSignal.PrimarySignalEvent.Await()
+            Print("MonitorRemoteSignal:  button pressed.")
+            spawn{ WallHackPlayer(ButtonPresser) }
+
+    MonitorTrigger()<suspends>:void=
+        loop:
+            TriggerPusher := EnableByTrigger.TriggeredEvent.Await()
+            if(Agent := TriggerPusher?):
+                spawn{ WallHackPlayer(Agent) }  
+                
+    MonitorButton()<suspends>:void=
+        loop:
+            ButtonPresser := EnableByButton.InteractedWithEvent.Await()
+            spawn{ WallHackPlayer(ButtonPresser) }
+
+    WallHackPlayer(Agent:agent) <suspends> : void=
+        Print("WallHackPlayer:  start.")
+        if(MainPlayer := player[Agent], MainFC:= MainPlayer.GetFortCharacter[]):
+            Print("WallHackPlayer:  found player and fort_character.")
+            for(MappedAgent -> VFX : VFXAgentMap):
+                Print("WallHackPlayer:  cycling through all mapped players.")
+                if(FortChar := MappedAgent.GetFortCharacter[]):
+                    Print("WallHackPlayer:  found fort_character in mapped player.")
+                    if(FortChar = MainFC):
+                        Print("WallHackPlayer:  skipping self.")
+                    else:
+                        CheckSameTeam := IsOnSameTeam(Agent, MappedAgent)
+                        if(CheckSameTeam = false):
+                            Print("WallHackPlayer:  enabling VFX for attached to this player.")
+                            EnableVFX(VFX)
+
+    VFXGlueToPlayer(Agent : agent, VFX : vfx_spawner_device)<suspends>:void=
+        if(FortChar := Agent.GetFortCharacter[]):
+            loop:
+                Sleep(0.0)
+                if(VFX.TeleportTo[FortChar.GetTransform().Translation,IdentityRotation()]){}
+
+    EnableVFX(VFX : vfx_spawner_device): void=
+        Print("EnableVFX:  start.")
+        VFX.Enable()
+        if(VFXInfiniteDuration = false):
+            spawn{ TimedDisableVFX(VFX)}        
+
+    TimedDisableVFX(VFX : vfx_spawner_device)<suspends>:void=
+        Sleep(VFXDuration)
+        VFX.Disable()
+
+    IsOnSameTeam(InitiatingAgent : agent, ComparingAgent : agent):logic=
+        TeamCollection := GetPlayspace().GetTeamCollection()
+        if(InitiatingTeam := TeamCollection.GetTeam[InitiatingAgent]):
+            if(TeamCollection.IsOnTeam[ComparingAgent, InitiatingTeam]):
+                return true
+        return false
