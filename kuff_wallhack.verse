@@ -5,7 +5,7 @@ using { /Fortnite.com/Characters }
 using { /UnrealEngine.com/Temporary/SpatialMath }
 using { /Fortnite.com/Game }
 
-@editable SpawnPads : []player_spawner_device = array{}
+    @editable SpawnPads : []player_spawner_device = array{}
     @editable VFXRemoteSignal : signal_remote_manager_device = signal_remote_manager_device{}
     @editable EnableByTrigger : trigger_device = trigger_device{}
     @editable EnableByButton : button_device = button_device{}
@@ -44,9 +44,9 @@ Kuff_wallhack := class(creative_device):
         SpawnPadInit()
         set VFXStack = CreateStack( WallHacksVFXs )
         GetPlayspace().PlayerRemovedEvent().Subscribe(OnPlayerRemoved)
-        spawn{ MonitorRemoteSignal() }
-        spawn{ MonitorTrigger() }
-        spawn{MonitorButton() }
+        spawn{ RemoteSignal() }
+        spawn{ Trigger() }
+        spawn{ButtonDetect() }
 
     SpawnPadInit():void=
         for(SpawnPad : SpawnPads):
@@ -59,8 +59,7 @@ Kuff_wallhack := class(creative_device):
                 set VFXStack = NewTuple(0)                
                 VFX : vfx_spawner_device = NewTuple(1)
                 if(set VFXAgentMap[Agent] = VFX):
-                spawn{ VFXGlueToPlayer(Agent, VFX) }
-                Print("AgentInit:  there are now {VFXStack.Size()} items in stock.")
+                spawn{ VFXAttatch(Agent, VFX) }
             else:
 
     OnPlayerRemoved(Agent : agent):void=
@@ -71,54 +70,45 @@ Kuff_wallhack := class(creative_device):
                 set NewVFXMap = ConcatenateMaps(NewVFXMap, map{CurrentAgent => VFX})
             set VFXAgentMap = NewVFXMap
             RemovedPlayerVFX.Disable()
-            Print("OnPlayerRemoved:  there are now {VFXStack.Size()} items in stock.")
 
-    MonitorRemoteSignal()<suspends>:void=
+    RemoteSignal()<suspends>:void=
         loop:
             ButtonPresser := VFXRemoteSignal.PrimarySignalEvent.Await()
-            Print("MonitorRemoteSignal:  button pressed.")
             spawn{ WallHackPlayer(ButtonPresser) }
 
-    MonitorTrigger()<suspends>:void=
+    Trigger()<suspends>:void=
         loop:
             TriggerPusher := EnableByTrigger.TriggeredEvent.Await()
             if(Agent := TriggerPusher?):
                 spawn{ WallHackPlayer(Agent) }  
                 
-    MonitorButton()<suspends>:void=
+    ButtonDetect()<suspends>:void=
         loop:
             ButtonPresser := EnableByButton.InteractedWithEvent.Await()
             spawn{ WallHackPlayer(ButtonPresser) }
 
     WallHackPlayer(Agent:agent) <suspends> : void=
-        Print("WallHackPlayer:  start.")
         if(MainPlayer := player[Agent], MainFC:= MainPlayer.GetFortCharacter[]):
-            Print("WallHackPlayer:  found player and fort_character.")
             for(MappedAgent -> VFX : VFXAgentMap):
-                Print("WallHackPlayer:  cycling through all mapped players.")
                 if(FortChar := MappedAgent.GetFortCharacter[]):
-                    Print("WallHackPlayer:  found fort_character in mapped player.")
                     if(FortChar = MainFC):
-                        Print("WallHackPlayer:  skipping self.")
                     else:
                         CheckSameTeam := IsOnSameTeam(Agent, MappedAgent)
                         if(CheckSameTeam = false):
-                            Print("WallHackPlayer:  enabling VFX for attached to this player.")
                             EnableVFX(VFX)
 
-    VFXGlueToPlayer(Agent : agent, VFX : vfx_spawner_device)<suspends>:void=
+    VFXAttatch(Agent : agent, VFX : vfx_spawner_device)<suspends>:void=
         if(FortChar := Agent.GetFortCharacter[]):
             loop:
                 Sleep(0.0)
                 if(VFX.TeleportTo[FortChar.GetTransform().Translation,IdentityRotation()]){}
 
     EnableVFX(VFX : vfx_spawner_device): void=
-        Print("EnableVFX:  start.")
         VFX.Enable()
         if(VFXInfiniteDuration = false):
-            spawn{ TimedDisableVFX(VFX)}        
+            spawn{ ClearVFX(VFX)}        
 
-    TimedDisableVFX(VFX : vfx_spawner_device)<suspends>:void=
+    ClearVFX(VFX : vfx_spawner_device)<suspends>:void=
         Sleep(VFXDuration)
         VFX.Disable()
 
