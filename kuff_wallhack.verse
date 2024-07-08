@@ -5,11 +5,13 @@ using { /Fortnite.com/Characters }
 using { /UnrealEngine.com/Temporary/SpatialMath }
 using { /Fortnite.com/Game }
 
-    @editable SpawnPads : []player_spawner_device = array{}
     @editable VFXRemoteSignal : signal_remote_manager_device = signal_remote_manager_device{}
     @editable EnableByTrigger : trigger_device = trigger_device{}
     @editable EnableByButton : button_device = button_device{}
+    
     @editable WallHacksVFXs : []vfx_spawner_device = array{} 
+    @editable SpawnPads : []player_spawner_device = array{}
+    
     @editable VFXInfiniteDuration : logic = true   
     @editable VFXDuration : float = 10.0
 
