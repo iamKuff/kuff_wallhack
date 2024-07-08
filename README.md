@@ -23,7 +23,7 @@ A Wallhack script made with UEFN scripting language VERSE. Use for Creative 2.0!
 
 # Devices
 ```
-   @editable SpawnPads : []player_spawner_device = array{}
+    @editable SpawnPads : []player_spawner_device = array{}
     @editable VFXRemoteSignal : signal_remote_manager_device = signal_remote_manager_device{}
     @editable EnableByTrigger : trigger_device = trigger_device{}
     @editable EnableByButton : button_device = button_device{}
