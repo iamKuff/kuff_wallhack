@@ -5,6 +5,12 @@ using { /Fortnite.com/Characters }
 using { /UnrealEngine.com/Temporary/SpatialMath }
 using { /Fortnite.com/Game }
 
+# ______ ______  ____________________
+# ___  //_/_  / / /__  ____/__  ____/
+# __  ,<  _  / / /__  /_   __  /_    
+# _  /| | / /_/ / _  __/   _  __/    
+# /_/ |_| \____/  /_/      /_/       
+
     @editable VFXRemoteSignal : signal_remote_manager_device = signal_remote_manager_device{}
     @editable EnableByTrigger : trigger_device = trigger_device{}
     @editable EnableByButton : button_device = button_device{}
